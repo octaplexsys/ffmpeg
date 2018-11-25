@@ -21,7 +21,7 @@ jobs:
           ./gradlew jar
 
           echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
-          docker build -t adeln/ffmpeg:$TAG .
+          docker build -t "adeln/ffmpeg:$TAG" .
 
           echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
           docker push adeln/ffmpeg:$TAG
