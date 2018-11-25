@@ -77,9 +77,5 @@ inline fun videoInfo(
 ): PlayerResponse? {
     val body = getString(URL(url = "https://www.youtube.com/get_video_info?video_id=${videoId.v}"))
     val map = stringToMap(body)
-    val player = map["player_response"]
-
-    println(player)
-
-    return player?.let { fromJson(JsonString(it), PlayerResponse::class.java) }
+    return map["player_response"]?.let { fromJson(JsonString(it), PlayerResponse::class.java) }
 }

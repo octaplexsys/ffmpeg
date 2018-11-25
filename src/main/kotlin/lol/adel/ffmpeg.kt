@@ -43,6 +43,7 @@ fun FFMpeg.toCommand(): String =
 fun Process.awaitMetadata(): Unit =
     errorStream.reader().useLines {
         for (line in it) {
+            println(line)
             if ("Metadata" in line) {
                 break
             }
