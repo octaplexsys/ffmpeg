@@ -79,12 +79,10 @@ fun main(args: Array<String>) {
                     output = URL(output)
                 ).toCommand()
 
-                println(ffmpeg)
-
                 Runtime.getRuntime().exec(ffmpeg).awaitMetadata()
 
                 try {
-                    proxy(client.call(output.replace(oldValue = "localhost", newValue = "[::1]")), call)
+                    proxy(client.call(output), call)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

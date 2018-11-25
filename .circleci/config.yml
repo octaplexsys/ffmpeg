@@ -6,13 +6,9 @@ jobs:
 
     steps:
     - checkout
-    - run:
-        name: Setup Env
-        command: |
-          echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
 
     - run:
-        name: Run Tests
+        name: Tests
         command: |
           ./gradlew test
 
@@ -23,7 +19,7 @@ jobs:
         name: Build and push Docker image
         command: |
           ./gradlew jar
-          docker build -t adeln/ffmpeg:$TAG .
+          docker build -t adeln/ffmpeg:0.1.$CIRCLE_BUILD_NUM .
           echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
           docker push adeln/ffmpeg:$TAG
 
