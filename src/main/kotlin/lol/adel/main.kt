@@ -42,7 +42,10 @@ fun main(args: Array<String>) {
 
         Runtime.getRuntime().run {
             exec(ffmpeg).awaitMetadata()
-            exec("open $output")
+            exec("open $output").run {
+                println(inputStream.reader().use { it.readText() })
+                println(errorStream.reader().use { it.readText() })
+            }
         }
     }
 }
