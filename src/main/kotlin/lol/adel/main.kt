@@ -16,7 +16,6 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 fun List<Format>.bestAndSmallestAudio(): Format? =
     filter { it.audioQuality == AudioQuality.AUDIO_QUALITY_MEDIUM }.minBy { it.bitrate.rate }
@@ -50,12 +49,18 @@ fun main(args: Array<String>) {
                 val ffmpeg = FFMpeg(
                     input = format.url,
                     skipVideo = true,
-                    output = FFMpegOutput.File(File("/tmp/file.mp3"))
+                    output = FFMpegOutput.File(output)
                 ).toCommand()
 
-                if (Runtime.getRuntime().exec(ffmpeg).waitFor(1, TimeUnit.MINUTES)) {
-                    call.respond(LocalFileContent(output))
+                println(ffmpeg)
+
+                Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
+                    it.forEach {
+                        println(it)
+                    }
                 }
+
+                call.respond(LocalFileContent(output))
             }
         }
     }.start(wait = true)

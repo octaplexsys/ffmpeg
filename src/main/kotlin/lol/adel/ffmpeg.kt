@@ -1,18 +1,5 @@
 package lol.adel
 
-fun boolNumber(b: Boolean): Byte =
-    if (b) 1 else 0
-
-data class FFMpegHTTP(
-    val listen: Boolean
-)
-
-fun FFMpegHTTP.listen(): String =
-    "-listen ${boolNumber(listen)}"
-
-fun FFMpegHTTP.toCommand(): String =
-    listen()
-
 sealed class FFMpegOutput {
     data class File(val file: java.io.File) : FFMpegOutput()
     data class Server(val serveFrom: URL) : FFMpegOutput()
@@ -41,12 +28,3 @@ fun FFMpeg.output(): String =
 
 fun FFMpeg.toCommand(): String =
     "ffmpeg ${input()} ${skipVideo()} ${output()}"
-
-fun Process.awaitMetadata() {
-    for (line in errorStream.reader().buffered().lineSequence()) {
-        println(line)
-        if ("handler_name" in line) {
-            break
-        }
-    }
-}
