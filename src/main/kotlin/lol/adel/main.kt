@@ -25,6 +25,8 @@ fun main(args: Array<String>) {
     runBlocking {
         val f = client.bestAndSmallestAudio(json, VideoId(v = "-RV0hKAAVro"))!!
 
+        println(f)
+
         val output = "http://localhost:8080/foo.mp3"
 
         val ffmpeg = FFMpeg(
