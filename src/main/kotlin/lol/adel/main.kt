@@ -10,8 +10,10 @@ import io.ktor.client.call.call
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.response.readText
 import io.ktor.features.AutoHeadResponse
+import io.ktor.features.PartialContent
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.content.LocalFileContent
 import io.ktor.http.content.OutgoingContent
 import io.ktor.response.header
 import io.ktor.response.respond
@@ -21,7 +23,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import kotlinx.coroutines.io.ByteWriteChannel
 import kotlinx.coroutines.io.copyAndClose
-import java.util.*
+import java.io.File
 
 fun List<Format>.bestAndSmallestAudio(): Format? =
     filter { it.audioQuality == AudioQuality.AUDIO_QUALITY_MEDIUM }.minBy { it.bitrate.rate }
@@ -29,7 +31,7 @@ fun List<Format>.bestAndSmallestAudio(): Format? =
 
 suspend fun HttpClient.bestAndSmallestAudio(json: Moshi, id: VideoId): Format? =
     videoInfo(
-        getString = { call(it.url).response.readText() },
+        getString = { call(it.string).response.readText() },
         fromJson = { s, c -> json.adapter(c).fromJson(s.json) },
         videoId = id
     )?.streamingData?.formats?.bestAndSmallestAudio()
@@ -65,27 +67,23 @@ fun main(args: Array<String>) {
 
     embeddedServer(Netty, port = Config.PORT) {
         install(AutoHeadResponse)
+        install(PartialContent)
 
         routing {
             get("/") {
                 val format = client.bestAndSmallestAudio(json, VideoId(v = "-RV0hKAAVro"))!!
 
-                val output = "http://localhost:${Config.FFMPEG_PORT}/${UUID.randomUUID()}.mp3"
+                val output = File("/tmp/file.mp3")
 
                 val ffmpeg = FFMpeg(
                     input = format.url,
                     skipVideo = true,
-                    http = FFMpegHTTP(listen = true),
-                    output = URL(output)
+                    output = FFMpegOutput.File(File("/tmp/file.mp3"))
                 ).toCommand()
 
                 Runtime.getRuntime().exec(ffmpeg).awaitMetadata()
 
-                try {
-                    proxy(client.call(output), call)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                call.respond(LocalFileContent(output))
             }
         }
     }.start(wait = true)

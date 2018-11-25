@@ -8,7 +8,7 @@ inline class MimeType(val type: String)
 
 inline class Pixels(val size: Int)
 
-inline class URL(val url: String)
+inline class URL(val string: String)
 
 inline class BitsPerSecond(val rate: Long)
 
@@ -75,7 +75,7 @@ inline fun videoInfo(
     fromJson: (JsonString, Class<PlayerResponse>) -> PlayerResponse?,
     videoId: VideoId
 ): PlayerResponse? {
-    val body = getString(URL(url = "https://www.youtube.com/get_video_info?video_id=${videoId.v}"))
+    val body = getString(URL(string = "https://www.youtube.com/get_video_info?video_id=${videoId.v}"))
     val map = stringToMap(body)
     return map["player_response"]?.let { fromJson(JsonString(it), PlayerResponse::class.java) }
 }
