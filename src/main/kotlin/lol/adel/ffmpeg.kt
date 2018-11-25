@@ -4,22 +4,14 @@ fun boolNumber(b: Boolean): Byte =
     if (b) 1 else 0
 
 data class FFMpegHTTP(
-    val listen: Boolean,
-    val seekable: Boolean,
-    val multipleRequests: Boolean
+    val listen: Boolean
 )
 
 fun FFMpegHTTP.listen(): String =
     "-listen ${boolNumber(listen)}"
 
-fun FFMpegHTTP.seekable(): String =
-    "-seekable ${boolNumber(seekable)}"
-
-fun FFMpegHTTP.multipleRequests(): String =
-    "-multiple_requests ${boolNumber(multipleRequests)}"
-
 fun FFMpegHTTP.toCommand(): String =
-    "${listen()} ${seekable()} ${multipleRequests()}"
+    listen()
 
 data class FFMpeg(
     val input: URL,
@@ -40,12 +32,11 @@ fun FFMpeg.output(): String =
 fun FFMpeg.toCommand(): String =
     "ffmpeg ${input()} ${skipVideo()} ${http.toCommand()} ${output()}"
 
-fun Process.awaitMetadata(): Unit =
-    errorStream.reader().useLines {
-        for (line in it) {
-            println(line)
-            if ("Metadata" in line) {
-                break
-            }
+fun Process.awaitMetadata() {
+    for (line in errorStream.reader().buffered().lineSequence()) {
+        println(line)
+        if ("handler_name" in line) {
+            break
         }
     }
+}
