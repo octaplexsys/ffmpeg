@@ -43,25 +43,29 @@ fun main(args: Array<String>) {
 
         routing {
             get("/") {
-                val output = File("/tmp/file.mp3")
-                val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
-                output.delete()
+                try {
+                    val output = File("/tmp/file.mp3")
+                    val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
+                    output.delete()
 
-                val ffmpeg = FFMpeg(
-                    input = format.url,
-                    skipVideo = true,
-                    output = FFMpegOutput.File(output)
-                ).toCommand()
+                    val ffmpeg = FFMpeg(
+                        input = format.url,
+                        skipVideo = true,
+                        output = FFMpegOutput.File(output)
+                    ).toCommand()
 
-                println(ffmpeg)
+                    println(ffmpeg)
 
-                Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
-                    it.forEach {
-                        println(it)
+                    Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
+                        it.forEach {
+                            println(it)
+                        }
                     }
-                }
 
-                call.respond(LocalFileContent(output))
+                    call.respond(LocalFileContent(output))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }.start(wait = true)
