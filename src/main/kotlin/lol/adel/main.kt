@@ -46,13 +46,9 @@ fun main(args: Array<String>) {
         routing {
             get("/") {
                 val output = File("/tmp/file.mp3")
-                val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
+                output.delete()
 
-                try {
-                    output.delete()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                val format = client.bestAndSmallestAudio(json, VideoId(v = "9kN2GIYZEhI"))!!
 
                 val ffmpeg = FFMpeg(
                     input = format.url,
