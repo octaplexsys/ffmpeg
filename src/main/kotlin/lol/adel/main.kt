@@ -55,7 +55,7 @@ fun main(args: Array<String>) {
 
                 println(ffmpeg)
 
-                Runtime.getRuntime().exec("time $ffmpeg").errorStream.reader().useLines {
+                Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
                     it.forEach {
                         println(it)
                     }
