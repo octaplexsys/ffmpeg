@@ -47,7 +47,12 @@ fun main(args: Array<String>) {
             get("/") {
                 val output = File("/tmp/file.mp3")
                 val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
-                output.delete()
+
+                try {
+                    output.delete()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
 
                 val ffmpeg = FFMpeg(
                     input = format.url,
