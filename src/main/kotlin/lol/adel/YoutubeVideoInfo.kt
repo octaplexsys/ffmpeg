@@ -6,7 +6,11 @@ inline class VideoId(val v: String)
 
 inline class MimeType(val type: String)
 
-inline class Pixels(val size: Int)
+inline class Pixels(val size: Int) : Comparable<Pixels> {
+
+    override fun compareTo(other: Pixels): Int =
+        size.compareTo(other.size)
+}
 
 inline class URL(val string: String)
 

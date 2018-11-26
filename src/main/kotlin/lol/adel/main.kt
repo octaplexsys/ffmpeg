@@ -18,8 +18,9 @@ import io.ktor.server.netty.Netty
 import java.io.File
 
 fun List<Format>.bestAndSmallestAudio(): Format? =
-    filter { it.audioQuality == AudioQuality.AUDIO_QUALITY_MEDIUM }.minBy { it.bitrate.rate }
-        ?: minBy { it.bitrate.rate }
+    asSequence()
+        .filter { it.audioQuality == AudioQuality.AUDIO_QUALITY_MEDIUM }
+        .minBy { it.width }
 
 suspend fun HttpClient.bestAndSmallestAudio(json: Moshi, id: VideoId): Format? =
     videoInfo(
@@ -42,9 +43,9 @@ fun main(args: Array<String>) {
 
         routing {
             get("/") {
-                val format = client.bestAndSmallestAudio(json, VideoId(v = "-RV0hKAAVro"))!!
-
                 val output = File("/tmp/file.mp3")
+                val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
+                output.delete()
 
                 val ffmpeg = FFMpeg(
                     input = format.url,
@@ -54,7 +55,7 @@ fun main(args: Array<String>) {
 
                 println(ffmpeg)
 
-                Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
+                Runtime.getRuntime().exec("time $ffmpeg").errorStream.reader().useLines {
                     it.forEach {
                         println(it)
                     }
