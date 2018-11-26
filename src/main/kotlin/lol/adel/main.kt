@@ -8,6 +8,7 @@ import io.ktor.client.call.call
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.response.readText
 import io.ktor.features.AutoHeadResponse
+import io.ktor.features.CallLogging
 import io.ktor.features.PartialContent
 import io.ktor.http.content.LocalFileContent
 import io.ktor.response.respond
@@ -40,32 +41,29 @@ fun main(args: Array<String>) {
     embeddedServer(Netty, port = Config.PORT) {
         install(AutoHeadResponse)
         install(PartialContent)
+        install(CallLogging)
 
         routing {
             get("/") {
-                try {
-                    val output = File("/tmp/file.mp3")
-                    val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
-                    output.delete()
+                val output = File("/tmp/file.mp3")
+                val format = client.bestAndSmallestAudio(json, VideoId(v = "Q__zXNg_bns"))!!
+                output.delete()
 
-                    val ffmpeg = FFMpeg(
-                        input = format.url,
-                        skipVideo = true,
-                        output = FFMpegOutput.File(output)
-                    ).toCommand()
+                val ffmpeg = FFMpeg(
+                    input = format.url,
+                    skipVideo = true,
+                    output = FFMpegOutput.File(output)
+                ).toCommand()
 
-                    println(ffmpeg)
+                println(ffmpeg)
 
-                    Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
-                        it.forEach {
-                            println(it)
-                        }
+                Runtime.getRuntime().exec(ffmpeg).errorStream.reader().useLines {
+                    it.forEach {
+                        println(it)
                     }
-
-                    call.respond(LocalFileContent(output))
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
+
+                call.respond(LocalFileContent(output))
             }
         }
     }.start(wait = true)
