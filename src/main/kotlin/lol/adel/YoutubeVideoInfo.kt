@@ -54,6 +54,7 @@ data class StreamingData(
 enum class PlayabilityStatusEnum {
     OK,
     UNPLAYABLE,
+    ERROR,
 }
 
 data class PlayabilityStatus(
