@@ -18,9 +18,11 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.cio.KtorDefaultPool
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.io.ByteReadChannel
 import kotlinx.coroutines.io.jvm.javaio.toByteReadChannel
-import java.time.Duration
 
 fun List<Format>.bestAndSmallestAudio(): Format? =
     asSequence()
@@ -38,37 +40,23 @@ object Config {
     val PORT = System.getenv("PORT")?.toInt() ?: 8080
 }
 
-fun parseDuration(trim: String): Duration {
-    val segments = trim.split(":")
-    val (hours, minutes) = segments.take(2).map(String::toLong)
-    val (seconds, nanos) = segments.last().split(".").map(String::toLong)
-    return Duration.ofHours(hours) + Duration.ofMinutes(minutes) + Duration.ofSeconds(seconds, nanos)
-}
+class Cache(val client: HttpClient, val json: Moshi) {
 
-inline class Bitrate(val bps: Long) {
-    companion object {
-        fun ofKbps(kbps: Long): Bitrate =
-            Bitrate(bps = 1024 * kbps)
+    private val cache = mutableMapOf<VideoId, Deferred<Format?>>()
+
+    suspend fun format(scope: CoroutineScope, v: VideoId): Format? {
+        val deferred = cache[v]
+            ?: scope.async { client.bestAndSmallestAudio(json, v) }.also { cache[v] = it }
+
+        return deferred.await()
     }
 }
-
-fun Bitrate.toKbps(): Long =
-    bps / 1024
-
-inline class Bitsize(val bits: Long)
-
-fun Bitsize.toBytes(): Long =
-    bits / 8
-
-fun Bitsize.toKiloBytes(): Long =
-    bits / 1024 / 8
-
-operator fun Bitrate.times(d: Duration): Bitsize =
-    Bitsize(bits = d.seconds * bps)
 
 fun main(args: Array<String>) {
     val client = HttpClient(Apache)
     val json = Moshi.Builder().build()
+
+    val cache = Cache(client, json)
 
     embeddedServer(Netty, port = Config.PORT) {
         install(AutoHeadResponse)
@@ -76,27 +64,31 @@ fun main(args: Array<String>) {
 
         routing {
             get("/") {
-                call.request.queryParameters["v"]
-                    ?.let { v -> client.bestAndSmallestAudio(json, VideoId(v)) }
-                    ?.let { format ->
-                        val command = FFMpeg(
-                            input = format.url,
-                            skipVideo = true,
-                            format = "mp3",
-                            output = FFMpegOutput.Pipe
-                        ).toCommand()
+                val v = call.request.queryParameters["v"]
+                if (v.isNullOrBlank()) {
+                    call.respond("use with ?v=XXXXX")
+                } else {
+                    cache.format(scope = this, v = VideoId(v))
+                        ?.let { format ->
+                            val command = FFMpeg(
+                                input = format.url,
+                                skipVideo = true,
+                                format = "mp3",
+                                output = FFMpegOutput.Pipe
+                            ).toCommand()
 
-                        Runtime.getRuntime().exec(command).use { ffmpeg ->
-                            call.respond(object : OutgoingContent.ReadChannelContent() {
+                            Runtime.getRuntime().exec(command).use { ffmpeg ->
+                                call.respond(object : OutgoingContent.ReadChannelContent() {
 
-                                override val contentType: ContentType = ContentType.Audio.MPEG
+                                    override val contentType: ContentType = ContentType.Audio.MPEG
 
-                                override fun readFrom(): ByteReadChannel =
-                                    ffmpeg.inputStream.toByteReadChannel(pool = KtorDefaultPool)
-                            })
+                                    override fun readFrom(): ByteReadChannel =
+                                        ffmpeg.inputStream.toByteReadChannel(pool = KtorDefaultPool)
+                                })
+                            }
                         }
-                    }
-                    ?: call.respond(HttpStatusCode.NotFound)
+                        ?: call.respond(HttpStatusCode.NotFound)
+                }
             }
         }
     }.start(wait = true)
