@@ -18,8 +18,8 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.cio.KtorDefaultPool
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.io.ByteReadChannel
 import kotlinx.coroutines.io.jvm.javaio.toByteReadChannel
@@ -44,9 +44,9 @@ class Cache(val client: HttpClient, val json: Moshi) {
 
     private val cache = mutableMapOf<VideoId, Deferred<Format?>>()
 
-    suspend fun format(scope: CoroutineScope, v: VideoId): Format? {
+    suspend fun format(v: VideoId): Format? {
         val deferred = cache[v]
-            ?: scope.async { client.bestAndSmallestAudio(json, v) }.also { cache[v] = it }
+            ?: GlobalScope.async { client.bestAndSmallestAudio(json, v) }.also { cache[v] = it }
 
         return deferred.await()
     }
@@ -68,7 +68,7 @@ fun main(args: Array<String>) {
                 if (v.isNullOrBlank()) {
                     call.respond("use with ?v=XXXXX")
                 } else {
-                    cache.format(scope = this, v = VideoId(v))
+                    cache.format(VideoId(v))
                         ?.let { format ->
                             val command = FFMpeg(
                                 input = format.url,
